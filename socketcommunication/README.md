@@ -5,3 +5,4 @@ echo기능을 통하여 일단, 클라이언트에서 입력한 텍스트를 터
 https://github.com/ayeonggg/illegal-vehicle-detection-system/issues/1#issue-2241691333
 
 VSC터미널 바로 왼쪽 옆에 뜨 주소의 웹페이지에 텍스트가 뜨는줄 알았는데 그게 아니래 Port오른쪽에 커서를 갖다대면 나오는 htttps://localhost같은 주소의 웹페이지에 텍스트가 뜨는줄 알았는데 그게 아니래.
+![스크린샷 2024-04-11 225148](https://github.com/ayeonggg/illegal-vehicle-detection-system/assets/101121988/17767af2-3876-4ce7-a68f-e960bd2adcb7)
