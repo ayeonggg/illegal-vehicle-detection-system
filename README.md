@@ -7,7 +7,7 @@
 
 
 
-외장그래픽 gput 있는 데스크탑 사용시 Visual Studio Code또는  Pycharm으로 딥러닝 가능.
+외장그래픽 gpu 있는 데스크탑 사용시 Visual Studio Code또는  Pycharm으로 딥러닝 가능.
 
 내장그래픽만 있는 데스크탑의 경우 Colab으로 학습시켜서 best.pt모델 다운로드한 후 VSC에서 yolov5-master폴더 열어, 코드 수정 후 실행
 
