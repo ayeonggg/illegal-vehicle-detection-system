@@ -27,7 +27,8 @@ class VideoBox:
         self.__source = source
         self.board = board
         self.capture_count = 0
-        self.image_folder = "/home/ec2-user/captured_images"  # 이미지를 저장할 폴더 경로
+        self.image_folder = "C:/Users/USER/Desktop/yolo/yolo/personimage"  # 이미지를 저장할 폴더 경로
+        self.image_num = 0  # 이미지 번호 변수 추가
 
         # 이미지 저장을 위한 폴더 생성
         if not os.path.exists(self.image_folder):
@@ -53,8 +54,8 @@ class VideoBox:
                     if results.names[int(cls)] == 'person':
                         detect_fall = 1
                         # 이미지 저장
-                        now = datetime.now()
-                        current_time = now.strftime("%Y%m%d%H%M%S")
+                        self.image_num += 1  # 이미지 번호 증가
+                        current_time = datetime.now().strftime("%Y%m%d%H%M%S")
                         save_path = os.path.join(self.image_folder, f"image_{current_time}_{self.capture_count}.jpg")  # 각 이미지에 고유한 번호를 부여하여 저장
                         cv2.imwrite(save_path, frame)
                         self.capture_count += 1
@@ -87,8 +88,6 @@ class VideoBox:
                     self.__end = 0
                     self.__board_check = 0
                     self.__video_frame.config(bg='white')
-
-            
 
             video = frame
             cv2img = cv2.cvtColor(video, cv2.COLOR_BGR2RGBA)
