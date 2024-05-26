@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kakao 지도 시작하기</title>
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=4e6fbfd0fcddfb62e75f26707247ccdd"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; position: relative; }
+        #car-plate-detect { font-size: 18px; color: #3C4243; position: absolute; top: 0px; right: 20px; z-index: 10; }
+        #violation-location { font-size: 18px; color: #3C4243; z-index: 10; }
+        #map-container { position: relative; width: 100%; height: 100vh; text-align: left; box-sizing: border-box; z-index: 1; }
+        #map { width: 60%; height: 90%; float: left; box-sizing: border-box; z-index: 1; }
+        #image-container { width: 40%; height: 90%; float: right; box-sizing: border-box; position: relative; z-index: 1; display: none; }
+        #car-image, #plate-image { width: 100%; height: auto; display: block; }
+        #info-container { position: relative; width: 100%; text-align: center; padding: 10px 0; background-color: rgba(0, 0, 0, 0.5); color: white; font-size: 24px; display: flex; justify-content: space-between; align-items: center; }
+        #car-number { margin-left: 20px; }
+        #capture-time { margin-right: 20px; }
+        #status { font-size: 20px; color: black; text-align: center; margin-top: 20px; }
+        .footer { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #3C4243; color: white; text-align: center; padding: 10px; }
+        .footer-content span { margin: 0 5px; }
+        .footer-content span:hover { cursor: pointer; text-decoration: underline; }
+        #additional-info { color: #666; }
+    </style>
+</head>
+<body>
+    <div id="map-container">
+        <h1 id="car-plate-detect">Car Image</h1>
+        <h1 id="violation-location">Violation Vehicle Location</h1>
+        <div id="map"></div>
+        <div id="image-container">
+            <div id="image-wrapper">
+                <img id="car-image" src="" alt="Car Image">
+                <img id="plate-image" src="" alt="Plate Image">
+                <div id="info-container">
+                    <div id="car-number">번호판 정보 없음</div>
+                    <div id="capture-time">촬영 시간 정보 없음</div>
+                </div>
+            </div>
+        </div>
+        <div id="status"></div>
+    </div>
+    <div class="footer" id="footer">
+        <div class="footer-content">
+            <span id="current-time"></span>
+        </div>
+    </div>
+    <script>
+        function updateTime() {
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
+            var timeString = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+            document.getElementById('current-time').innerText = timeString;
+        }
+
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        var carImages = {{ car_images | tojson | safe }};
+        var plateTexts = {{ plate_texts | tojson | safe }};
+        var plateImages = {{ plate_images | tojson | safe }};
+        var latitudeDegs = {{ latitude_degs | tojson | safe }};
+        var longitudeDegs = {{ longitude_degs | tojson | safe }};
+        var captureTimes = {{ capture_times | tojson | safe }};
+
+        kakao.maps.load(function () {
+            var mapContainer = document.getElementById('map');
+            var mapOption = {
+                center: new kakao.maps.LatLng(latitudeDegs[0], longitudeDegs[0]),
+                level: 4
+            };
+            var map = new kakao.maps.Map(mapContainer, mapOption);
+
+            var positions = carImages.map((carImage, i) => ({
+                title: 'Violation Car' + (i + 1),
+                latlng: new kakao.maps.LatLng(latitudeDegs[i], longitudeDegs[i]),
+                imageSrc: 'https://detectpath.s3.ap-northeast-2.amazonaws.com/auto-2071876_640.webp',
+                car_image: carImage,
+                plate_image: plateImages[i],
+                plate_text: plateTexts[i],
+                capture_time: captureTimes[i]
+            }));
+
+            var status = document.getElementById('status');
+            if (positions.length > 0) {
+                status.innerText = '진주시 가좌동 불법 주차 현황: ' + positions.length + '개의 마커';
+                var additionalInfo = document.createElement('div');
+                additionalInfo.id = 'additional-info';
+                additionalInfo.innerText = '자세한 정보는 마커를 클릭하여 확인할 수 있습니다.';
+                status.appendChild(additionalInfo);
+            } else {
+                status.innerText = '정보가 없습니다.';
+            }
+
+            for (var i = 0; i < positions.length; i++) {
+                var imageSrc = positions[i].imageSrc,
+                    imageSize = new kakao.maps.Size(64, 69),
+                    imageOption = { offset: new kakao.maps.Point(27, 69) },
+                    markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption),
+                    markerPosition = positions[i].latlng;
+
+                var marker = new kakao.maps.Marker({
+                    map: map,
+                    position: markerPosition,
+                    title: positions[i].title,
+                    image: markerImage
+                });
+
+                (function (marker, position) {
+                    kakao.maps.event.addListener(marker, 'click', function () {
+                        document.getElementById('car-image').src = position.car_image;
+                        document.getElementById('plate-image').src = position.plate_image;
+                        document.getElementById('car-number').innerText = position.plate_text;
+                        document.getElementById('capture-time').innerText = position.capture_time;
+                        document.getElementById('image-container').style.display = "block";
+                    });
+                })(marker, positions[i]);
+            }
+        });
+    </script>
+</body>
+</html>
