@@ -76,7 +76,7 @@
             var positions = carImages.map((carImage, i) => ({
                 title: 'Violation Car' + (i + 1),
                 latlng: new kakao.maps.LatLng(latitudeDegs[i], longitudeDegs[i]),
-                imageSrc: 'https://detectpath.s3.ap-northeast-2.amazonaws.com/auto-2071876_640.webp',
+                imageSrc: "https://detectpath.s3.ap-northeast-2.amazonaws.com/icons8-sedan-50.png",
                 car_image: carImage,
                 plate_image: plateImages[i],
                 plate_text: plateTexts[i],
@@ -95,9 +95,9 @@
             }
 
             for (var i = 0; i < positions.length; i++) {
-                var imageSrc = positions[i].imageSrc,
-                    imageSize = new kakao.maps.Size(64, 69),
-                    imageOption = { offset: new kakao.maps.Point(27, 69) },
+                var imageSrc = (latitudeDegs[i] >= 35.15597 &&latitudeDegs[i] <= 35.15605&& longitudeDegs[i] >=128.1030 && longitudeDegs[i] <=128.1036) ? "https://detectpath.s3.ap-northeast-2.amazonaws.com/icons8-car-48.png" : positions[i].imageSrc,
+                    imageSize = new kakao.maps.Size(32, 34.5), // 마커 크기 변경
+                    imageOption = { offset: new kakao.maps.Point(16, 34.5) }, // 이미지의 중앙 하단을 기준으로 설정
                     markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption),
                     markerPosition = positions[i].latlng;
 
@@ -107,6 +107,7 @@
                     title: positions[i].title,
                     image: markerImage
                 });
+            
 
                 (function (marker, position) {
                     kakao.maps.event.addListener(marker, 'click', function () {
@@ -122,3 +123,4 @@
     </script>
 </body>
 </html>
+
