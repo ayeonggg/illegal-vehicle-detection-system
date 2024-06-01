@@ -9,23 +9,43 @@
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; position: relative; }
         #car-plate-detect { font-size: 18px; color: #3C4243; position: absolute; top: 0px; right: 20px; z-index: 10; }
         #violation-location { font-size: 18px; color: #3C4243; z-index: 10; }
-        #map-container { position: relative; width: 100%; height: 100vh; text-align: left; box-sizing: border-box; z-index: 1; }
-        #map { width: 60%; height: 90%; float: left; box-sizing: border-box; z-index: 1; }
-        #image-container { width: 40%; height: 90%; float: right; box-sizing: border-box; position: relative; z-index: 1; display: none; }
+        #map-container { position: relative; width: 100%; height: calc(100vh - 50px); text-align: left; box-sizing: border-box; z-index: 1; }
+        #map { width: 60%; height: 100%; float: left; box-sizing: border-box; z-index: 1; }
+        #image-container { width: 40%; height: 100%; float: right; box-sizing: border-box; position: relative; z-index: 1; display: none; }
         #car-image, #plate-image { width: 100%; height: auto; display: block; }
         #info-container { position: relative; width: 100%; text-align: center; padding: 10px 0; background-color: rgba(0, 0, 0, 0.5); color: white; font-size: 24px; display: flex; justify-content: space-between; align-items: center; }
         #car-number { margin-left: 20px; }
         #capture-time { margin-right: 20px; }
-        #status { font-size: 20px; color: black; text-align: center; margin-top: 20px; }
-        .footer { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #3C4243; color: white; text-align: center; padding: 10px; }
-        .footer-content span { margin: 0 5px; }
-        .footer-content span:hover { cursor: pointer; text-decoration: underline; }
+        #status {
+            font-size: 20px;
+            color: black;
+            position: absolute;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+            padding: 10px 0;
+            background-color: #f8f9fa;
+        }
+        
+        .status-below-map {
+            position: relative; 
+            bottom: 0;
+            transform: none;
+            text-align: left;
+            margin-top: 10px;
+            z-index: 1;
+            width: 60%;
+            left: 0;
+            padding: 0; /* 패딩을 0으로 설정하여 주변에 패딩이 없도록 함 */
+        }
         #additional-info { color: #666; }
     </style>
 </head>
 <body>
     <div id="map-container">
-        <h1 id="car-plate-detect">Car Image</h1>
+        <h1 id="car-plate-detect">진주시 가좌동 불법 주차 현황Car Image</h1>
         <h1 id="violation-location">Violation Vehicle Location</h1>
         <div id="map"></div>
         <div id="image-container">
@@ -40,24 +60,7 @@
         </div>
         <div id="status"></div>
     </div>
-    <div class="footer" id="footer">
-        <div class="footer-content">
-            <span id="current-time"></span>
-        </div>
-    </div>
     <script>
-        function updateTime() {
-            var now = new Date();
-            var hours = now.getHours();
-            var minutes = now.getMinutes();
-            var seconds = now.getSeconds();
-            var timeString = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
-            document.getElementById('current-time').innerText = timeString;
-        }
-
-        updateTime();
-        setInterval(updateTime, 1000);
-
         var carImages = {{ car_images | tojson | safe }};
         var plateTexts = {{ plate_texts | tojson | safe }};
         var plateImages = {{ plate_images | tojson | safe }};
@@ -85,13 +88,14 @@
 
             var status = document.getElementById('status');
             if (positions.length > 0) {
-                status.innerText = '진주시 가좌동 불법 주차 현황: ' + positions.length + '개의 마커';
+                status.innerText = '진주시 가좌동 불법 주차 현황: ' 
+                status.innerText = '단속된 차량 대수: '+ positions.length;
                 var additionalInfo = document.createElement('div');
                 additionalInfo.id = 'additional-info';
                 additionalInfo.innerText = '자세한 정보는 마커를 클릭하여 확인할 수 있습니다.';
                 status.appendChild(additionalInfo);
             } else {
-                status.innerText = '정보가 없습니다.';
+                status.innerText = '단속된 차량 정보가 없습니다.';
             }
 
             for (var i = 0; i < positions.length; i++) {
@@ -107,7 +111,6 @@
                     title: positions[i].title,
                     image: markerImage
                 });
-            
 
                 (function (marker, position) {
                     kakao.maps.event.addListener(marker, 'click', function () {
@@ -116,6 +119,9 @@
                         document.getElementById('car-number').innerText = position.plate_text;
                         document.getElementById('capture-time').innerText = position.capture_time;
                         document.getElementById('image-container').style.display = "block";
+
+                       
+                        status.classList.remove('status-right-center'); // Remove the right center class
                     });
                 })(marker, positions[i]);
             }
@@ -123,4 +129,3 @@
     </script>
 </body>
 </html>
-
