@@ -19,10 +19,10 @@ def home():
         capture_times = []
 
         for row in ws.iter_rows(min_row=0, values_only=True):
-            plate_text = row[1]
-            latitude_deg = row[3]
-            longitude_deg = row[4]
-            capture_time = row[5]
+            plate_text = row[2]
+            latitude_deg = row[4]
+            longitude_deg = row[5]
+            capture_time = row[3]
 
             car_images.append(f"https://detectpath.s3.ap-northeast-2.amazonaws.com/{capture_time}.webp")
             plate_images.append(f"https://detectpath.s3.ap-northeast-2.amazonaws.com/{capture_time}plate.webp")
