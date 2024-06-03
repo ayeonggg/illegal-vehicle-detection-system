@@ -28,7 +28,7 @@ def car_image_upload():
     try:
         # 엑셀 파일 읽기 시도
         print("엑셀 파일 읽기 시작...")
-        wb = op.load_workbook(r"C:\\Users\\USER\\Desktop\\data.xlsx")
+        wb = op.load_workbook(r"C:\\Users\\USER\\Desktop\\detect_result.xlsx")
         ws = wb.active
         print("엑셀 파일 읽기 완료.")
 
