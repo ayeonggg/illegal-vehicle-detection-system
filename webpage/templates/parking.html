@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>불법 주차 차량 위치 및 주차 구역 안내 시스템</title>
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=4e6fbfd0fcddfb62e75f26707247ccdd"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e6e6fa;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #7F56D9;
+            color: white;
+            text-align: center;
+            padding: 1em;
+        }
+
+        #about {
+            padding: 20px;
+            background-color: white;
+            margin: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            flex-grow: 1;
+            display: flex;
+            justify-content: right;
+            align-items: right;
+            position: relative;
+        }
+
+        #mapContainer {
+            width: 80%;
+            height: 100%;
+        }
+
+        #image-container {
+            width: 20%;
+            text-align: center;
+            display: none;
+            box-sizing: border-box;
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            z-index: 10;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        #car-image, #plate-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px 0;
+        }
+
+        #info-container {
+            padding: 10px;
+            background-color: white;
+            color: black;
+            font-size: 14px;
+            text-align: center;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+        }
+
+        #status {
+            font-size: 20px;
+            color: black;
+            padding: 20px;
+            background-color: #f8f9fa;
+            margin: 20px;
+            text-align: center;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 10px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>진주시 가좌동 불법 주차 현황</h1>
+    </header>
+    <div class="button-container">
+        <div class="button" onclick="showViolation()">불법 주차 차량</div>
+        <div class="button" onclick="showParking()">주차 공간</div>
+    </div>
+    <section id="about">
+        <h2>About Us</h2>
+        <p>불법 주차 차량 위치 및 주차 구역 안내 시스템입니다.</p>
+    </section>
+    <section id="map">
+        <div id="image-container">
+            <div id="image-wrapper">
+                <img id="car-image" src="" alt="Car Image">
+                <img id="plate-image" src="" alt="Plate Image">
+                <div id="info-container">
+                    <div id="car-number">번호판 정보 없음</div>
+                    <div id="capture-time">촬영 시간 정보 없음</div>
+                </div>
+            </div>
+        </div>
+        <div id="mapContainer"></div>
+    </section>
+    <div id="status">진주시 가좌동 불법 주차 현황</div>
+
+    <script>
+        // 실제 데이터로 대체해야 합니다.
+        var carImages = {{ car_images | tojson | safe }};
+        var plateTexts = {{ plate_texts | tojson | safe }};
+        var plateImages = {{ plate_images | tojson | safe }};
+        var latitudeDegs = {{ latitude_degs | tojson | safe }};
+        var longitudeDegs = {{ longitude_degs | tojson | safe }};
+        var captureTimes = {{ capture_times | tojson | safe }};
+
+        var map;
+        var markers = [];
+
+        kakao.maps.load(function () {
+            var mapContainer = document.getElementById('mapContainer');
+            var mapOption = {
+                center: new kakao.maps.LatLng(35.15170, 128.1006),
+                level: 4
+            };
+            map = new kakao.maps.Map(mapContainer, mapOption);
+
+            var positions = carImages.map((carImage, i) => ({
+                title: 'Violation Car' + (i + 1),
+                latlng: new kakao.maps.LatLng(latitudeDegs[i], longitudeDegs[i]),
+                imageSrc: "https://detectpath.s3.ap-northeast-2.amazonaws.com/icons8-sedan-50.png",
+                car_image: carImage,
+                plate_image: plateImages[i],
+                plate_text: plateTexts[i],
+                capture_time: captureTimes[i]
+            }));
+
+            var status = document.getElementById('status');
+            if (positions.length > 0) {
+                var additionalInfo = document.createElement('div');
+                additionalInfo.id = 'additional-info';
+                additionalInfo.innerText = '자세한 정보는 마커를 클릭하여 확인할 수 있습니다.';
+                status.appendChild(additionalInfo);
+            } else {
+                status.innerText = '단속된 차량 정보가 없습니다.';
+            }
+
+            positions.forEach(function(position) {
+                var imageSrc = (position.latlng.getLat() >= 35.15597 && position.latlng.getLat() <= 35.15605 && position.latlng.getLng() >= 128.1030 && position.latlng.getLng() <= 128.1036) ? "https://detectpath.s3.ap-northeast-2.amazonaws.com/icons8-car-48.png" : position.imageSrc,
+                    imageSize = new kakao.maps.Size(32, 34.5),
+                    imageOption = { offset: new kakao.maps.Point(16, 34.5) },
+                    markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption),
+                    markerPosition = position.latlng;
+
+                var marker = new kakao.maps.Marker({
+                    map: map,
+                    position: markerPosition,
+                    title: position.title,
+                    image: markerImage
+                });
+
+                markers.push(marker);
+
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    document.getElementById('car-image').src = position.car_image;
+                    document.getElementById('plate-image').src = position.plate_image;
+                    document.getElementById('car-number').innerText = ('차량 번호: '+ position.plate_text);
+                    document.getElementById('capture-time').innerText = ('단속 시간: '+ position.capture_time);
+                    document.getElementById('image-container').style.display = "block";
+                });
+            });
+        });
+
+        function showViolation() {
+            markers.forEach(function(marker) {
+                marker.setMap(map);
+            });
+            document.getElementById('status').innerText = '진주시 가좌동 불법 주차 현황';
+            document.getElementById('image-container').style.display = "none";
+        }
+
+        function showParking() {
+            markers.forEach(function(marker) {
+                marker.setMap(null);
+            });
+            document.getElementById('status').innerText = '진주시 가좌동 주차 공간 현황';
+            document.getElementById('image-container').style.display = "none";
+        }
+    </script>
+</body>
+</html>
