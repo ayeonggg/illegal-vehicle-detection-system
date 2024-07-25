@@ -10,15 +10,15 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #e6e6fa;
+            background-color: #f8f9fa;
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
 
         header {
-            background-color: #7F56D9;
-            color: white;
+            background-color: #8686FF;
+            color: black;
             text-align: center;
             padding: 1em;
         }
@@ -104,8 +104,6 @@
 
         .button {
             display: inline-block;
-            background-color: #007bff;
-            color: white;
             padding: 10px 20px;
             border-radius: 5px;
             margin: 10px;
@@ -113,8 +111,14 @@
             text-decoration: none;
         }
 
-        .button:hover {
-            background-color: #0056b3;
+        .inactive {
+            background-color: #e6e6fa;
+            color: black;
+        }
+
+        .active {
+            background-color: #8686FF;
+            color: black;
         }
     </style>
 </head>
@@ -123,8 +127,8 @@
         <h1>진주시 가좌동 불법 주차 현황</h1>
     </header>
     <div class="button-container">
-        <div class="button" onclick="showViolation()">불법 주차 차량</div>
-        <div class="button" onclick="showParking()">주차 공간</div>
+        <div id="violationButton" class="button active" onclick="showViolation()">불법 주차 차량</div>
+        <div id="parkingButton" class="button inactive" onclick="showParking()">주차 공간</div>
     </div>
     <section id="about">
         <h2>About Us</h2>
@@ -146,37 +150,50 @@
     <div id="status">진주시 가좌동 불법 주차 현황</div>
 
     <script>
-        // 실제 데이터로 대체해야 합니다.
+        // 데이터 초기화
         var carImages = {{ car_images | tojson | safe }};
         var plateTexts = {{ plate_texts | tojson | safe }};
         var plateImages = {{ plate_images | tojson | safe }};
         var latitudeDegs = {{ latitude_degs | tojson | safe }};
         var longitudeDegs = {{ longitude_degs | tojson | safe }};
         var captureTimes = {{ capture_times | tojson | safe }};
+        var parkingAlts = {{ parking_alts | tojson | safe }};
+        var parkingLongs = {{ parking_longs | tojson | safe }};
+
+        console.log(parkingAlts);  // 디버깅 출력
+        console.log(parkingLongs);  // 디버깅 출력
 
         var map;
-        var markers = [];
+        var violationMarkers = [];
+        var parkingMarkers = [];
 
-        kakao.maps.load(function () {
-            var mapContainer = document.getElementById('mapContainer');
-            var mapOption = {
-                center: new kakao.maps.LatLng(35.15170, 128.1006),
-                level: 4
+        var mapContainer = document.getElementById('mapContainer'), 
+            mapOption = {
+                center: new kakao.maps.LatLng(35.1536, 128.098),
+                level: 3 
             };
-            map = new kakao.maps.Map(mapContainer, mapOption);
 
-            var positions = carImages.map((carImage, i) => ({
-                title: 'Violation Car' + (i + 1),
-                latlng: new kakao.maps.LatLng(latitudeDegs[i], longitudeDegs[i]),
+        map = new kakao.maps.Map(mapContainer, mapOption);
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var violationPositions = latitudeDegs.map((latitudeDeg, i) => ({
+                title: 'Violation' + (i + 1),
+                latlng: new kakao.maps.LatLng(latitudeDeg, longitudeDegs[i]),
                 imageSrc: "https://detectpath.s3.ap-northeast-2.amazonaws.com/icons8-sedan-50.png",
-                car_image: carImage,
+                car_image: carImages[i],
                 plate_image: plateImages[i],
                 plate_text: plateTexts[i],
                 capture_time: captureTimes[i]
             }));
 
+            var parkingPositions = parkingAlts.map((parkingAlt, i) => ({
+                title: 'Parking Spot' + (i + 1),
+                latlng: new kakao.maps.LatLng(parkingAlts[i], parkingLongs[i]),
+                imageSrc: "https://detectpath.s3.ap-northeast-2.amazonaws.com/car-parking_3787301.png"
+            }));
+
             var status = document.getElementById('status');
-            if (positions.length > 0) {
+            if (violationPositions.length > 0) {
                 var additionalInfo = document.createElement('div');
                 additionalInfo.id = 'additional-info';
                 additionalInfo.innerText = '자세한 정보는 마커를 클릭하여 확인할 수 있습니다.';
@@ -185,11 +202,10 @@
                 status.innerText = '단속된 차량 정보가 없습니다.';
             }
 
-            positions.forEach(function(position) {
-                var imageSrc = (position.latlng.getLat() >= 35.15597 && position.latlng.getLat() <= 35.15605 && position.latlng.getLng() >= 128.1030 && position.latlng.getLng() <= 128.1036) ? "https://detectpath.s3.ap-northeast-2.amazonaws.com/icons8-car-48.png" : position.imageSrc,
-                    imageSize = new kakao.maps.Size(32, 34.5),
+            violationPositions.forEach(function(position) {
+                var imageSize = new kakao.maps.Size(32, 34.5),
                     imageOption = { offset: new kakao.maps.Point(16, 34.5) },
-                    markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imageOption),
+                    markerImage = new kakao.maps.MarkerImage(position.imageSrc, imageSize, imageOption),
                     markerPosition = position.latlng;
 
                 var marker = new kakao.maps.Marker({
@@ -199,7 +215,7 @@
                     image: markerImage
                 });
 
-                markers.push(marker);
+                violationMarkers.push(marker);
 
                 kakao.maps.event.addListener(marker, 'click', function() {
                     document.getElementById('car-image').src = position.car_image;
@@ -209,22 +225,67 @@
                     document.getElementById('image-container').style.display = "block";
                 });
             });
+
+            parkingPositions.forEach(function(position) {
+                var imageSize = new kakao.maps.Size(32, 34.5),
+                    imageOption = { offset: new kakao.maps.Point(16, 34.5) },
+                    markerImage = new kakao.maps.MarkerImage(position.imageSrc, imageSize, imageOption),
+                    markerPosition = position.latlng;
+
+                var marker = new kakao.maps.Marker({
+                    map: map,
+                    position: markerPosition,
+                    title: position.title,
+                    image: markerImage
+                });
+
+                parkingMarkers.push(marker);
+            });
+
+            showViolation();
         });
 
         function showViolation() {
-            markers.forEach(function(marker) {
-                marker.setMap(map);
-            });
-            document.getElementById('status').innerText = '진주시 가좌동 불법 주차 현황';
-            document.getElementById('image-container').style.display = "none";
+            setActiveButton('violationButton');
+            status.innerText = '진주시 가좌동 불법 주차 현황';
+            showMarkers(violationMarkers);
+            hideMarkers(parkingMarkers);
         }
 
         function showParking() {
-            markers.forEach(function(marker) {
-                marker.setMap(null);
-            });
-            document.getElementById('status').innerText = '진주시 가좌동 주차 공간 현황';
-            document.getElementById('image-container').style.display = "none";
+            setActiveButton('parkingButton');
+            status.innerText = '진주시 가좌동 주차 공간 현황';
+            showMarkers(parkingMarkers);
+            hideMarkers(violationMarkers);
+        }
+
+        function showMarkers(markers) {
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setMap(map);
+            }
+        }
+
+        function hideMarkers(markers) {
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setMap(null);
+            }
+        }
+
+        function setActiveButton(activeButtonId) {
+            var violationButton = document.getElementById('violationButton');
+            var parkingButton = document.getElementById('parkingButton');
+
+            if (activeButtonId === 'violationButton') {
+                violationButton.classList.add('active');
+                violationButton.classList.remove('inactive');
+                parkingButton.classList.add('inactive');
+                parkingButton.classList.remove('active');
+            } else {
+                violationButton.classList.add('inactive');
+                violationButton.classList.remove('active');
+                parkingButton.classList.add('active');
+                parkingButton.classList.remove('inactive');
+            }
         }
     </script>
 </body>
